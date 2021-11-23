@@ -1,0 +1,9 @@
+{
+    "loggingLevel":"warning",
+    "batchSize":42,
+    "dateFields": [
+        { "field":"CreateDate", "pattern":"2006:01:02 15:04:05" },
+        { "field":"Media Create Date", "pattern":"2006:01:02 15:04:05" }
+    ],
+    "outputDateFormat":"2006+01"
+}
