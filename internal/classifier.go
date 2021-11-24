@@ -64,7 +64,7 @@ func (cl *Classifier) Classify(inputFolder string, outputFolder string) error {
 	actionChan := make(chan moveAction, cl.threadCount)
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() { // list files
 		cl.listFiles(ctx, cancel, inputFolder, fileChan)
@@ -73,6 +73,11 @@ func (cl *Classifier) Classify(inputFolder string, outputFolder string) error {
 
 	go func() {
 		cl.getMoveActions(ctx, cancel, fileChan, actionChan)
+		defer wg.Done()
+	}()
+
+	go func() {
+		cl.moveFiles(ctx, cancel, outputFolder, actionChan)
 		defer wg.Done()
 	}()
 
@@ -93,7 +98,8 @@ func (cl *Classifier) listFiles(ctx context.Context, cancel context.CancelFunc, 
 			select {
 			case <-ctx.Done():
 				return nil
-			case filesChan <- path:
+			default:
+				filesChan <- path
 				fileCount++
 				log.Debug().Msgf("New file to extract: %v", path)
 			}

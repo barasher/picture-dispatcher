@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/barasher/go-exiftool"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -181,4 +182,30 @@ func TestMoveFiles(t *testing.T) {
 
 	checkExist(t, "../testdata/tmp/batch/TestMoveFilesNominal/in/20190404_131804.jpg", false)
 	checkExist(t, "../testdata/tmp/batch/TestMoveFilesNominal/out/2019_04/20190404_131804.jpg", true)
+}
+
+func TestClassify(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	tmpDir := "/tmp/" + "TestClassify"
+	inDir := filepath.Join(tmpDir, "in")
+	os.MkdirAll(inDir, 0777)
+	subDir := filepath.Join(inDir, "subFolder")
+	os.MkdirAll(subDir, 0777)
+	assert.Nil(t, copy("../testdata/input/20190404_131804.jpg", filepath.Join(subDir, "20190404_131805.jpg")))
+	assert.Nil(t, copy("../testdata/input/20190404_131804.jpg", filepath.Join(subDir, "20190404_131806.jpg")))
+	assert.Nil(t, copy("../testdata/input/subFolder/noDate.txt", filepath.Join(subDir, "noDate.txt")))
+	assert.Nil(t, copy("../testdata/input/20190404_131804.jpg", filepath.Join(inDir, "20190404_131804.jpg")))
+
+	outDir := filepath.Join(tmpDir, "out")
+	os.MkdirAll(outDir, 0777)
+	c := buildDefaultClassifier(t, 2)
+	c.Classify(inDir, outDir)
+
+	checkExist(t, filepath.Join(subDir, "noDate.txt"), true)
+	checkExist(t, filepath.Join(subDir, "20190404_131805.jpg"), false)
+	checkExist(t, filepath.Join(subDir, "20190404_131806.jpg"), false)
+	checkExist(t, filepath.Join(inDir, "20190404_131804.jpg"), false)
+	checkExist(t, filepath.Join(outDir, "2019_04", "20190404_131804.jpg"), true)
+	checkExist(t, filepath.Join(outDir, "2019_04", "20190404_131805.jpg"), true)
+	checkExist(t, filepath.Join(outDir, "2019_04", "20190404_131806.jpg"), true)
 }
