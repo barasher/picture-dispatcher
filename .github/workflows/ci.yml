@@ -13,7 +13,7 @@ jobs:
       - name: Environment dependencies
         run: |
           go version
-          go get -v
+          go get -v ./...
       - name: Tests
         run: go test -coverprofile=coverage.txt -covermode=atomic ./...
       - name: Coverage publication
