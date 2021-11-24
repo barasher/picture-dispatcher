@@ -2,8 +2,12 @@ package internal
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/barasher/go-exiftool"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -108,4 +112,73 @@ func TestGetMoveActions(t *testing.T) {
 
 		})
 	}
+}
+
+func TestGuessDateNominal(t *testing.T) {
+	fields := map[string]interface{}{
+		"a":          "b",
+		"CreateDate": "2018:01:02 03:04:05",
+	}
+	fm := exiftool.FileMetadata{File: "a", Fields: fields}
+	c := buildDefaultClassifier(t, 2)
+	got, err := c.guessDate(fm)
+	assert.Nil(t, err)
+	assert.Equal(t, 2018, got.Year())
+	assert.Equal(t, time.January, got.Month())
+	assert.Equal(t, 2, got.Day())
+	assert.Equal(t, 3, got.Hour())
+	assert.Equal(t, 4, got.Minute())
+	assert.Equal(t, 5, got.Second())
+}
+
+func TestGuessDateWithoutDateField(t *testing.T) {
+	fields := map[string]interface{}{
+		"a": "b",
+	}
+	fm := exiftool.FileMetadata{File: "a", Fields: fields}
+	c := buildDefaultClassifier(t, 2)
+	_, err := c.guessDate(fm)
+	assert.Equal(t, errNoDateFound, err)
+}
+
+func TestGuessDateUnparsableDate(t *testing.T) {
+	fields := map[string]interface{}{
+		"a":          "b",
+		"CreateDate": "unparsableDate",
+	}
+	fm := exiftool.FileMetadata{File: "a", Fields: fields}
+	c := buildDefaultClassifier(t, 2)
+	_, err := c.guessDate(fm)
+	assert.NotNil(t, err)
+	assert.NotEqual(t, errNoDateFound, err)
+}
+
+func checkExist(t *testing.T, path string, shouldExist bool) {
+	_, err := os.Stat(path)
+	if shouldExist {
+		assert.Nil(t, err)
+	} else {
+		assert.True(t, os.IsNotExist(err))
+	}
+}
+
+func TestMoveFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+	inDir := filepath.Join(tmpDir, "in")
+	os.MkdirAll(inDir, 0777)
+	outDir := filepath.Join(tmpDir, "out")
+	os.MkdirAll(outDir, 0777)
+	inFile := filepath.Join(inDir, "20190404_131804.jpg")
+	assert.Nil(t, copy("../testdata/input/20190404_131804.jpg", inFile))
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	moveChan := make(chan moveAction, 2)
+	moveChan <- moveAction{from: inFile, to: "2019_04"}
+	close(moveChan)
+
+	c := buildDefaultClassifier(t, 2)
+	c.moveFiles(ctx, cancel, outDir, moveChan)
+
+	checkExist(t, "../testdata/tmp/batch/TestMoveFilesNominal/in/20190404_131804.jpg", false)
+	checkExist(t, "../testdata/tmp/batch/TestMoveFilesNominal/out/2019_04/20190404_131804.jpg", true)
 }

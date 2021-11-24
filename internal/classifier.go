@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -173,4 +174,55 @@ func (cl *Classifier) guessDate(fm exiftool.FileMetadata) (time.Time, error) {
 		}
 	}
 	return time.Time{}, errNoDateFound
+}
+
+func (cl *Classifier) moveFiles(ctx context.Context, cancel context.CancelFunc, outputFolder string, actionChan chan moveAction) {
+	moveCount := 0
+	dirs := make(map[string]bool)
+	for ma := range actionChan {
+		l := log.With().Str(fileLogField, ma.from).Logger()
+		select {
+		case <-ctx.Done():
+			log.Info().Msgf("moveFiles canceled")
+		default:
+			if _, found := dirs[ma.to]; !found {
+				if err := os.MkdirAll(filepath.Join(outputFolder, ma.to), 0777); err != nil {
+					l.Error().Msgf("error when creating output folder: %v", err)
+					continue
+				}
+				dirs[ma.to] = true
+			}
+			_, f := filepath.Split(ma.from)
+			to := filepath.Join(outputFolder, ma.to, f)
+			l.Debug().Msgf("Moving to %v", to)
+			if err := move(ma.from, to); err != nil {
+				l.Error().Msgf("error when moving %v: %v", to, err)
+			} else {
+				moveCount++
+			}
+		}
+	}
+	log.Info().Msgf("%v moved file(s)", moveCount)
+}
+
+func copy(from, to string) error {
+	source, err := os.Open(from)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+	destination, err := os.Create(to)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+	_, err = io.Copy(destination, source)
+	return err
+}
+
+func move(from, to string) error {
+	if err := copy(from, to); err != nil {
+		return err
+	}
+	return os.Remove(from)
 }
