@@ -186,7 +186,7 @@ func TestMoveFiles(t *testing.T) {
 
 func TestClassify(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	tmpDir := "/tmp/" + "TestClassify"
+	tmpDir := t.TempDir() + "TestClassify"
 	inDir := filepath.Join(tmpDir, "in")
 	os.MkdirAll(inDir, 0777)
 	subDir := filepath.Join(inDir, "subFolder")
