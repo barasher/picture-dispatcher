@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func buildDefaultClassifier(t *testing.T, threadCount int) *Classifier {
-	c, err := NewClassifier(
+func buildDefaultDateDispatcher(t *testing.T, threadCount int) *DateDispatcher {
+	c, err := NewDateDispatcher(
 		OptThreadCount(threadCount),
 		OptDateFields(map[string]string{"CreateDate": "2006:01:02 15:04:05"}),
 	)
@@ -48,7 +48,7 @@ func TestListFiles(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.TODO())
 			filesChan := make(chan string, 10)
 
-			c := buildDefaultClassifier(t, 1)
+			c := buildDefaultDateDispatcher(t, 1)
 			c.listFiles(ctx, cancel, tc.folder, filesChan)
 
 			files := make([]string, 10)
@@ -101,7 +101,7 @@ func TestGetMoveActions(t *testing.T) {
 				}
 				close(fileChan)
 
-				c := buildDefaultClassifier(t, 2)
+				c := buildDefaultDateDispatcher(t, 2)
 				c.getMoveActions(ctx, cancel, fileChan, actionChan)
 
 				actions := []moveAction{}
@@ -121,7 +121,7 @@ func TestGuessDateNominal(t *testing.T) {
 		"CreateDate": "2018:01:02 03:04:05",
 	}
 	fm := exiftool.FileMetadata{File: "a", Fields: fields}
-	c := buildDefaultClassifier(t, 2)
+	c := buildDefaultDateDispatcher(t, 2)
 	got, err := c.guessDate(fm)
 	assert.Nil(t, err)
 	assert.Equal(t, 2018, got.Year())
@@ -137,7 +137,7 @@ func TestGuessDateWithoutDateField(t *testing.T) {
 		"a": "b",
 	}
 	fm := exiftool.FileMetadata{File: "a", Fields: fields}
-	c := buildDefaultClassifier(t, 2)
+	c := buildDefaultDateDispatcher(t, 2)
 	_, err := c.guessDate(fm)
 	assert.Equal(t, errNoDateFound, err)
 }
@@ -148,7 +148,7 @@ func TestGuessDateUnparsableDate(t *testing.T) {
 		"CreateDate": "unparsableDate",
 	}
 	fm := exiftool.FileMetadata{File: "a", Fields: fields}
-	c := buildDefaultClassifier(t, 2)
+	c := buildDefaultDateDispatcher(t, 2)
 	_, err := c.guessDate(fm)
 	assert.NotNil(t, err)
 	assert.NotEqual(t, errNoDateFound, err)
@@ -177,14 +177,14 @@ func TestMoveFiles(t *testing.T) {
 	moveChan <- moveAction{from: inFile, to: "2019_04"}
 	close(moveChan)
 
-	c := buildDefaultClassifier(t, 2)
+	c := buildDefaultDateDispatcher(t, 2)
 	c.moveFiles(ctx, cancel, outDir, moveChan)
 
 	checkExist(t, "../testdata/tmp/batch/TestMoveFilesNominal/in/20190404_131804.jpg", false)
 	checkExist(t, "../testdata/tmp/batch/TestMoveFilesNominal/out/2019_04/20190404_131804.jpg", true)
 }
 
-func TestClassify(t *testing.T) {
+func TestDispatch(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	tmpDir := t.TempDir() + "TestClassify"
 	inDir := filepath.Join(tmpDir, "in")
@@ -198,8 +198,8 @@ func TestClassify(t *testing.T) {
 
 	outDir := filepath.Join(tmpDir, "out")
 	os.MkdirAll(outDir, 0777)
-	c := buildDefaultClassifier(t, 2)
-	c.Classify(inDir, outDir)
+	c := buildDefaultDateDispatcher(t, 2)
+	c.Dispatch(inDir, outDir)
 
 	checkExist(t, filepath.Join(subDir, "noDate.txt"), true)
 	checkExist(t, filepath.Join(subDir, "20190404_131805.jpg"), false)

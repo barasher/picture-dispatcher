@@ -22,21 +22,21 @@ var defaultThreadCount = runtime.NumCPU()
 var defaultOutputDateFormat = "2006_01"
 var errNoDateFound = fmt.Errorf("No data found")
 
-type Classifier struct {
+type DateDispatcher struct {
 	threadCount      int
 	outputDateFormat string
 	dateFields       map[string]string
 }
 
-func OptThreadCount(size int) func(*Classifier) error {
-	return func(c *Classifier) error {
+func OptThreadCount(size int) func(*DateDispatcher) error {
+	return func(c *DateDispatcher) error {
 		c.threadCount = size
 		return nil
 	}
 }
 
-func OptDateFields(fields map[string]string) func(*Classifier) error {
-	return func(c *Classifier) error {
+func OptDateFields(fields map[string]string) func(*DateDispatcher) error {
+	return func(c *DateDispatcher) error {
 		for f, p := range fields {
 			c.dateFields[f] = p
 		}
@@ -44,40 +44,40 @@ func OptDateFields(fields map[string]string) func(*Classifier) error {
 	}
 }
 
-func NewClassifier(classOpts ...func(*Classifier) error) (*Classifier, error) {
-	c := Classifier{
+func NewDateDispatcher(classOpts ...func(*DateDispatcher) error) (*DateDispatcher, error) {
+	c := DateDispatcher{
 		threadCount:      runtime.NumCPU(),
 		dateFields:       make(map[string]string),
 		outputDateFormat: defaultOutputDateFormat,
 	}
 	for _, opt := range classOpts {
 		if err := opt(&c); err != nil {
-			return nil, fmt.Errorf("error when configuring classifier: %v", err)
+			return nil, fmt.Errorf("error when configuring date dispatcher: %v", err)
 		}
 	}
 	return &c, nil
 }
 
-func (cl *Classifier) Classify(inputFolder string, outputFolder string) error {
+func (dd *DateDispatcher) Dispatch(inputFolder string, outputFolder string) error {
 	ctx, cancel := context.WithCancel(context.Background())
-	fileChan := make(chan string, cl.threadCount)
-	actionChan := make(chan moveAction, cl.threadCount)
+	fileChan := make(chan string, dd.threadCount)
+	actionChan := make(chan moveAction, dd.threadCount)
 
 	var wg sync.WaitGroup
 	wg.Add(3)
 
 	go func() { // list files
-		cl.listFiles(ctx, cancel, inputFolder, fileChan)
+		dd.listFiles(ctx, cancel, inputFolder, fileChan)
 		defer wg.Done()
 	}()
 
 	go func() {
-		cl.getMoveActions(ctx, cancel, fileChan, actionChan)
+		dd.getMoveActions(ctx, cancel, fileChan, actionChan)
 		defer wg.Done()
 	}()
 
 	go func() {
-		cl.moveFiles(ctx, cancel, outputFolder, actionChan)
+		dd.moveFiles(ctx, cancel, outputFolder, actionChan)
 		defer wg.Done()
 	}()
 
@@ -85,7 +85,7 @@ func (cl *Classifier) Classify(inputFolder string, outputFolder string) error {
 	return nil
 }
 
-func (cl *Classifier) listFiles(ctx context.Context, cancel context.CancelFunc, inputFolder string, filesChan chan string) {
+func (dd *DateDispatcher) listFiles(ctx context.Context, cancel context.CancelFunc, inputFolder string, filesChan chan string) {
 	defer close(filesChan)
 	fileCount := 0
 	var err2 error
@@ -119,10 +119,10 @@ type moveAction struct {
 	to   string
 }
 
-func (cl *Classifier) getMoveActions(ctx context.Context, cancel context.CancelFunc, filesChan chan string, actionChan chan moveAction) error {
+func (dd *DateDispatcher) getMoveActions(ctx context.Context, cancel context.CancelFunc, filesChan chan string, actionChan chan moveAction) error {
 	wg := sync.WaitGroup{}
-	wg.Add(cl.threadCount)
-	for i := 0; i < cl.threadCount; i++ {
+	wg.Add(dd.threadCount)
+	for i := 0; i < dd.threadCount; i++ {
 		go func(thId int) {
 			defer wg.Done()
 			l := log.With().Int("threadId", thId).Logger()
@@ -149,14 +149,14 @@ func (cl *Classifier) getMoveActions(ctx context.Context, cancel context.CancelF
 						continue
 					}
 
-					if d, err := cl.guessDate(fm[0]); err != nil {
+					if d, err := dd.guessDate(fm[0]); err != nil {
 						if err != errNoDateFound {
 							l.Error().Str(fileLogField, file).Msgf("error while generating moveAction %v", err)
 						}
 					} else {
 						actionChan <- moveAction{
 							from: file,
-							to:   d.Format(cl.outputDateFormat),
+							to:   d.Format(dd.outputDateFormat),
 						}
 					}
 				}
@@ -169,8 +169,8 @@ func (cl *Classifier) getMoveActions(ctx context.Context, cancel context.CancelF
 	return nil
 }
 
-func (cl *Classifier) guessDate(fm exiftool.FileMetadata) (time.Time, error) {
-	for field, pattern := range cl.dateFields {
+func (dd *DateDispatcher) guessDate(fm exiftool.FileMetadata) (time.Time, error) {
+	for field, pattern := range dd.dateFields {
 		if val, found := fm.Fields[field]; found {
 			t, err := time.Parse(pattern, val.(string))
 			if err != nil {
@@ -182,7 +182,7 @@ func (cl *Classifier) guessDate(fm exiftool.FileMetadata) (time.Time, error) {
 	return time.Time{}, errNoDateFound
 }
 
-func (cl *Classifier) moveFiles(ctx context.Context, cancel context.CancelFunc, outputFolder string, actionChan chan moveAction) {
+func (dd *DateDispatcher) moveFiles(ctx context.Context, cancel context.CancelFunc, outputFolder string, actionChan chan moveAction) {
 	moveCount := 0
 	dirs := make(map[string]bool)
 	for ma := range actionChan {
