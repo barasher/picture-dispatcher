@@ -47,7 +47,7 @@ func loadConf(confFile string) (dispatcherConf, error) {
 
 	if c.ThreadCount < 1 {
 		c.ThreadCount = 0
-		log.Warn().Msgf("No batch size specified (or 0), will fallback to default value")
+		log.Warn().Msgf("No thread count specified (or 0), will fallback to default value")
 	}
 	if c.LoggingLevel == "" {
 		c.LoggingLevel = defaultLoggingLevel
