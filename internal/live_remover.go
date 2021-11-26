@@ -26,9 +26,7 @@ func RemoveLiveVideos(dir string) error {
 		}
 		if !info.IsDir() && isJpeg(path) {
 			movFile := fmt.Sprintf("%v%v", path[0:strings.LastIndex(path, ".")], liveExt)
-			fmt.Printf("%v is JPG -> movFIle: %v\n", path, movFile)
 			if _, err := os.Stat(movFile); err == nil {
-				fmt.Printf("%v exists !\n", movFile)
 				if err = os.Remove(movFile); err != nil {
 					log.Warn().Str(fileLogField, movFile).Msgf("error while removing file: %v", err)
 				}
