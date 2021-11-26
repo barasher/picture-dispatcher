@@ -31,6 +31,7 @@ type dispatcherConf struct {
 	ThreadCount      int         `json:"threadCount"`
 	DateFields       []dateField `json:"dateFields"`
 	OutputDateFormat string      `json:"outputDateFormat"`
+	ExiftoolPath     string      `json:"exiftoolPath"`
 }
 
 func loadConf(confFile string) (dispatcherConf, error) {
@@ -133,6 +134,9 @@ func doMain(args []string) int {
 	ddOpts = append(ddOpts, internal.OptDateOutputFormat(conf.OutputDateFormat))
 	if conf.ThreadCount > 0 {
 		ddOpts = append(ddOpts, internal.OptThreadCount(conf.ThreadCount))
+	}
+	if conf.ExiftoolPath != "" {
+		ddOpts = append(ddOpts, internal.OptExiftoolPath(conf.ExiftoolPath))
 	}
 	dFs := map[string]string{}
 	for _, v := range conf.DateFields {

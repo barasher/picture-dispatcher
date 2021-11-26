@@ -26,6 +26,7 @@ type DateDispatcher struct {
 	threadCount      int
 	outputDateFormat string
 	dateFields       map[string]string
+	exiftoolPath     string
 }
 
 func OptThreadCount(size int) func(*DateDispatcher) error {
@@ -47,6 +48,13 @@ func OptDateFields(fields map[string]string) func(*DateDispatcher) error {
 func OptDateOutputFormat(pattern string) func(*DateDispatcher) error {
 	return func(c *DateDispatcher) error {
 		c.outputDateFormat = pattern
+		return nil
+	}
+}
+
+func OptExiftoolPath(path string) func(*DateDispatcher) error {
+	return func(c *DateDispatcher) error {
+		c.exiftoolPath = path
 		return nil
 	}
 }
@@ -134,7 +142,11 @@ func (dd *DateDispatcher) getMoveActions(ctx context.Context, cancel context.Can
 			defer wg.Done()
 			l := log.With().Int("threadId", thId).Logger()
 
-			exif, err := exiftool.NewExiftool()
+			opts := []func(*exiftool.Exiftool) error{}
+			if dd.exiftoolPath != "" {
+				opts = append(opts, exiftool.SetExiftoolBinaryPath(dd.exiftoolPath))
+			}
+			exif, err := exiftool.NewExiftool(opts...)
 			if err != nil {
 				l.Error().Msgf("error while initializing go-exiftool: %v", err)
 				return
