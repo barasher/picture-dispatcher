@@ -44,6 +44,13 @@ func OptDateFields(fields map[string]string) func(*DateDispatcher) error {
 	}
 }
 
+func OptDateOutputFormat(pattern string) func(*DateDispatcher) error {
+	return func(c *DateDispatcher) error {
+		c.outputDateFormat = pattern
+		return nil
+	}
+}
+
 func NewDateDispatcher(classOpts ...func(*DateDispatcher) error) (*DateDispatcher, error) {
 	c := DateDispatcher{
 		threadCount:      runtime.NumCPU(),

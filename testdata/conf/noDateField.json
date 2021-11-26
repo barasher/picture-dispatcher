@@ -1,4 +1,4 @@
 {
     "loggingLevel":"warning",
-    "batchSize":42 
+    "threadCount":42 
 }

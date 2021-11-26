@@ -1,6 +1,6 @@
 {
-    "loggingLevel":"warning",
-    "batchSize":42,
+    "loggingLevel":"warn",
+    "threadCount":2,
     "dateFields": [
         { "field":"CreateDate", "pattern":"2006:01:02 15:04:05" },
         { "field":"Media Create Date", "pattern":"2006:01:02 15:04:05" }
