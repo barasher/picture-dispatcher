@@ -180,8 +180,8 @@ func TestMoveFiles(t *testing.T) {
 	c := buildDefaultDateDispatcher(t, 2)
 	c.moveFiles(ctx, cancel, outDir, moveChan)
 
-	checkExist(t, "../testdata/tmp/batch/TestMoveFilesNominal/in/20190404_131804.jpg", false)
-	checkExist(t, "../testdata/tmp/batch/TestMoveFilesNominal/out/2019_04/20190404_131804.jpg", true)
+	checkExist(t, inFile, false)
+	checkExist(t, filepath.Join(outDir, "2019_04", "20190404_131804.jpg"), true)
 }
 
 func TestDispatch(t *testing.T) {
