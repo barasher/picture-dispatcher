@@ -83,7 +83,7 @@ func main() {
 }
 
 func doMain(args []string) int {
-	cmd := flag.NewFlagSet("Classifier", flag.ContinueOnError)
+	cmd := flag.NewFlagSet("file-dispatcher", flag.ContinueOnError)
 	from := cmd.String("s", "", "Source folder")
 	to := cmd.String("d", "", "Destination folder")
 	confFile := cmd.String("c", "", "Configuration file")
