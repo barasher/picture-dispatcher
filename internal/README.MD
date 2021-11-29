@@ -1,7 +1,7 @@
 # Picture-dispatcher
 
 
-[![Build Status](https://github.com/barasher/picture-dispatcher/workflows/DispatcherCI/badge.svg)](https://github.com/barasher/picture-dispatcher/actions)
+[![Build Status](https://github.com/barasher/picture-dispatcher/workflows/DispatcherCI/badge.svg)](https://github.com/barasher/picture-dispatcher/actions)[![Build Status](https://github.com/barasher/picture-dispatcher/workflows/DispatcherWindowsCI/badge.svg)](https://github.com/barasher/picture-dispatcher/actions)
 [![go report card](https://goreportcard.com/badge/github.com/barasher/picture-dispatcher "go report card")](https://goreportcard.com/report/github.com/barasher/picture-dispatcher)
 
 ## Presentation
